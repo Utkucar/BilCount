@@ -7,3 +7,39 @@ export const images = {
   highlight,
   rankingGradient,
 };
+
+import onboarding from "@/assets/images/onboarding.png";
+import avatar from "@/assets/images/avatar.png";
+import newYork from "@/assets/images/new-york.png";
+import japan from "@/assets/images/japan.png";
+import cardGradient from "@/assets/images/card-gradient.png";
+import barChart from "@/assets/images/bar-chart.png";
+import whiteGradient from "@/assets/images/white-gradient.png";
+import map from "@/assets/images/map.png";
+import noResult from "@/assets/images/no-result.png";
+import bilcount from "@/assets/images/bilcount.png";
+import ee_building from "@/assets/images/ee_faculty.jpg";
+import cafeteria from "@/assets/images/cafeteria.jpg";
+import ff_building from "@/assets/images/ff_building.jpg";
+import gym from "@/assets/images/gym.jpg";
+import library from "@/assets/images/library.jpg";
+import rectorate from "@/assets/images/rectorate.jpg";
+
+export default {
+  onboarding,
+  avatar,
+  newYork,
+  japan,
+  cardGradient,
+  barChart,
+  whiteGradient,
+  map,
+  noResult,
+  bilcount,
+  ee_building,
+  cafeteria,
+  ff_building,
+  gym,
+  library,
+  rectorate,
+};
