@@ -1,5 +1,5 @@
 // app/locations/[id].tsx
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
     View,
     Text,
@@ -12,10 +12,10 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Progress from 'react-native-progress';
 import icons from '@/constants/icons';
-import { getPropertyById } from '@/services/firebase';
-import { useCrowdPercentage } from '@/lib/useCrowdPercentage';
+import { useSubscription } from '@/lib/useFirebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/services/firebase';
+import { useCrowdPercentage } from '@/lib/useCrowdPercentage';
 
 interface LocationData {
     id: string;
@@ -30,52 +30,42 @@ interface LocationData {
 
 export default function LocationDetail() {
     const { id } = useLocalSearchParams<{ id: string }>();
-    const [location, setLocation] = useState<LocationData | null>(null);
-    const [loading, setLoading] = useState(true);
 
-    // subscribe to crowd percentage via RealtimeDB
+    // Real-time Firestore subscription
+    const {
+        data: location,
+        loading,
+    } = useSubscription<LocationData | null>(
+        (next, onError) =>
+            onSnapshot(
+                doc(db, 'locations', id),
+                snap => {
+                    if (snap.exists()) {
+                        const d = snap.data();
+                        next({
+                            id: snap.id,
+                            name: d.name,
+                            description: d.description,
+                            image: d.imageUrl || d.image,
+                            capacity: d.capacity,
+                            latitude: d.latitude,
+                            longitude: d.longitude,
+                            floorCount: d.floorCount,
+                        });
+                    } else {
+                        next(null);
+                    }
+                },
+                onError
+            ),
+        [id]
+    );
+
+    // RealtimeDB crowd percentage
     const { crowdPercentage, loading: crowdLoading } = useCrowdPercentage(
         id,
         location?.capacity ?? null
     );
-
-    // subscribe to Firestore doc for realtime updates
-    useEffect(() => {
-        if (!id) return;
-        setLoading(true);
-        const docRef = doc(db, 'locations', id);
-        console.log('👀 Subscribing to Firestore document:', id);
-        const unsubscribe = onSnapshot(
-            docRef,
-            (snap) => {
-                if (snap.exists()) {
-                    const data = snap.data();
-                    setLocation({
-                        id: snap.id,
-                        name: data.name,
-                        description: data.description,
-                        image: data.imageUrl || data.image,
-                        capacity: data.capacity,
-                        latitude: data.latitude,
-                        longitude: data.longitude,
-                        floorCount: data.floorCount,
-                    });
-                } else {
-                    console.warn('⚠️ No such document for location:', id);
-                    setLocation(null);
-                }
-                setLoading(false);
-            },
-            (error) => {
-                console.error('🔥 Firestore onSnapshot error:', error);
-                setLoading(false);
-            }
-        );
-        return () => {
-            console.log('🔌 Unsubscribing from Firestore document:', id);
-            unsubscribe();
-        };
-    }, [id]);
 
     if (loading) {
         return (

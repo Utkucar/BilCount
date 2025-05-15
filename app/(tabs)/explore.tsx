@@ -1,8 +1,9 @@
 // app/explore.tsx
-import React, { useEffect, useState } from 'react';
-import { View, Image } from 'react-native';
+import React from 'react';
+import { View, Image, ActivityIndicator } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFirebase } from '@/lib/useFirebase';
 import { getProperties } from '@/services/firebase';
 import images from '@/constants/images';
 import { router } from 'expo-router';
@@ -18,34 +19,31 @@ interface Location {
 }
 
 export default function Explore() {
-    const [locations, setLocations] = useState<Location[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Fetch up to 100 properties one-off
+    const {
+        data: docs,
+        loading,
+    } = useFirebase(getProperties, { filter: 'All', query: '', limit: 100 });
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const docs = await getProperties({ filter: 'All', limit: 100 });
-                const mapped = docs.map(doc => ({
-                    id: doc.id,
-                    name: doc.name,
+    const locations: Location[] = React.useMemo(
+        () =>
+            docs
+                ? docs.map((d) => ({
+                    id: d.id,
+                    name: d.name,
                     coordinates: {
-                        lat: Number(doc.latitude),
-                        lng: Number(doc.longitude),
+                        lat: Number(d.latitude),
+                        lng: Number(d.longitude),
                     },
-                }));
-                setLocations(mapped);
-            } catch (err) {
-                console.error('Failed to load locations:', err);
-            } finally {
-                setLoading(false);
-            }
-        })();
-    }, []);
+                }))
+                : [],
+        [docs]
+    );
 
     if (loading) {
         return (
-            <SafeAreaView className="flex-1 justify-center items-center">
-                <Image source={images.loader} />
+            <SafeAreaView className="flex-1 justify-center items-center bg-white">
+                <ActivityIndicator size="large" />
             </SafeAreaView>
         );
     }
@@ -73,7 +71,7 @@ export default function Explore() {
                 showsUserLocation
                 showsMyLocationButton
             >
-                {locations.map(loc => (
+                {locations.map((loc) => (
                     <Marker
                         key={loc.id}
                         coordinate={{

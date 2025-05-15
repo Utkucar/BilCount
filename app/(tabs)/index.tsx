@@ -1,5 +1,5 @@
 // app/index.tsx
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   Text,
   View,
@@ -15,6 +15,7 @@ import Search from '@/components/Search';
 import { FeaturedCard, Card } from '@/components/Cards';
 import { Filter } from '@/components/Filters';
 import { useGlobalContext } from '@/lib/global-provider';
+import { useFirebase } from '@/lib/useFirebase';
 import {
   getLatestProperties,
   getProperties,
@@ -27,75 +28,37 @@ interface Location {
   longitude: number;
 }
 
-export default function Home() {
+export default function Index() {
   const { user } = useGlobalContext();
   const params = useLocalSearchParams<{ query?: string; filter?: string }>();
   const filter = params.filter || 'All';
   const query = params.query || '';
 
-  const [latest, setLatest] = useState<Location[]>([]);
-  const [latestLoading, setLatestLoading] = useState(true);
+  // One-off async loads
+  const {
+    data: latest,
+    loading: latestLoading,
+    refetch: refreshLatest,
+  } = useFirebase(getLatestProperties, { limit: 5 });
 
-  const [properties, setProperties] = useState<Location[]>([]);
-  const [propsLoading, setPropsLoading] = useState(true);
-
-  // Fetch latest 5
-  useEffect(() => {
-    (async () => {
-      setLatestLoading(true);
-      try {
-        const docs = await getLatestProperties(5);
-        setLatest(
-            docs.map((d) => ({
-              id: d.id,
-              name: d.name,
-              latitude: Number(d.latitude),
-              longitude: Number(d.longitude),
-            }))
-        );
-      } catch (err) {
-        console.error('Error loading latest:', err);
-      } finally {
-        setLatestLoading(false);
-      }
-    })();
-  }, []);
-
-  // Fetch filtered & searched
-  useEffect(() => {
-    (async () => {
-      setPropsLoading(true);
-      try {
-        const docs = await getProperties({ filter, query, limit: 6 });
-        setProperties(
-            docs.map((d) => ({
-              id: d.id,
-              name: d.name,
-              latitude: Number(d.latitude),
-              longitude: Number(d.longitude),
-            }))
-        );
-      } catch (err) {
-        console.error('Error loading properties:', err);
-      } finally {
-        setPropsLoading(false);
-      }
-    })();
-  }, [filter, query]);
+  const {
+    data: properties,
+    loading: propsLoading,
+    refetch: refreshProps,
+  } = useFirebase(getProperties, { filter, query, limit: 6 });
 
   // Build favorites from user.favLocations
   const favorites = React.useMemo(() => {
-    if (!user?.favLocations || properties.length === 0) return [];
+    if (!user?.favLocations || !properties) return [];
     return properties.filter((p) => user.favLocations.includes(p.id));
   }, [user, properties]);
 
-  const handleCardPress = (id: string) =>
-      router.push(`/locations/${id}`);
+  const handleCardPress = (id: string) => router.push(`/locations/${id}`);
 
   return (
       <SafeAreaView className="bg-white h-full">
         <FlatList
-            data={properties}
+            data={properties || []}
             renderItem={({ item }) => (
                 <Card item={item} onPress={() => handleCardPress(item.id)} />
             )}
@@ -148,7 +111,7 @@ export default function Home() {
                     <Text className="text-xl font-rubik-extrabold text-black-300">
                       Favourites
                     </Text>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={() => refreshProps()}>
                       <Text className="text-base font-rubik-bold text-primary-300">
                         See All
                       </Text>
@@ -180,7 +143,7 @@ export default function Home() {
                   <Text className="text-xl font-rubik-extrabold text-black-300">
                     Our Recommendations
                   </Text>
-                  <TouchableOpacity>
+                  <TouchableOpacity onPress={() => refreshLatest()}>
                     <Text className="text-base font-rubik-bold text-primary-300">
                       See All
                     </Text>
