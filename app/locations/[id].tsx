@@ -22,7 +22,6 @@ import { locationImages } from "@/constants/locationImages";
 export default function LocationDetail() {
     const { id } = useLocalSearchParams<{ id: string }>();
 
-    // Firestore subscription for location metadata
     const { data: location, loading: locationLoading } = useSubscription<any>(
         (next, onError) => {
             if (!id) { onError?.("No ID"); return () => {};
@@ -37,19 +36,16 @@ export default function LocationDetail() {
         [id]
     );
 
-    // RealtimeDB hook for crowd percentage
     const {
         crowdPercentage,
         loading: crowdLoading
     } = useCrowdPercentage(id, location?.capacity);
 
-    // Determine progress color based on thresholds
     const getProgressColor = (percent: number | null) => {
         if (percent == null) return '#00f';
-        if (percent <= 20) return '#4caf50';      // green
-        if (percent <= 50) return '#ffff50'; //yellow
-        if (percent <= 80) return '#ff8700';      // orange
-        return '#f44336';                        // red
+        if (percent <= 20) return '#4caf50';
+        if (percent <= 80) return '#ff8700';
+        return '#f44336';
     };
 
     const events = [
@@ -92,7 +88,7 @@ export default function LocationDetail() {
                 <Text style={styles.title}>{location.name}</Text>
                 <Text style={styles.subtitle}>{location.description}</Text>
 
-                {/* Occupancy with circular progress */}
+                {/* Occupancy with circular progress and capacity below */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Occupancy</Text>
                     <View style={styles.circleContainer}>
@@ -106,6 +102,7 @@ export default function LocationDetail() {
                             thickness={10}
                         />
                     </View>
+                    <Text style={styles.capacityText}>Capacity: {location.capacity}</Text>
                 </View>
 
                 {/* Temperature & Noise row */}
@@ -145,9 +142,10 @@ const styles = StyleSheet.create({
     heroImage: { width: '100%', height: 240, borderRadius: 12, marginBottom: 16 },
     title: { fontSize: 28, fontWeight: '700', marginBottom: 8, color: '#111' },
     subtitle: { fontSize: 16, color: '#555', marginBottom: 20 },
-    section: { marginBottom: 24 },
+    section: { marginBottom: 24, alignItems: 'center' },
     sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12 },
-    circleContainer: { alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
+    circleContainer: { alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+    capacityText: { fontSize: 16, fontWeight: '600', color: '#000' },
     row: { flexDirection: 'row', justifyContent: 'space-between' },
     infoBox: { flex: 1, backgroundColor: '#f5f5f5', padding: 16, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
     infoTitle: { fontSize: 16, color: '#333' },
