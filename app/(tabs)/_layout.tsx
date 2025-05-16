@@ -59,20 +59,6 @@ export default function TabsLayout() {
                     ),
                 }}
             />
-
-            <Tabs.Screen
-                name="locations"
-                options={{
-                    title: 'Locations',
-                    tabBarIcon: ({ color, focused }) => (
-                        <Image
-                            source={icons.location}
-                            style={{ tintColor: color, width: 24, height: 24 }}
-                            resizeMode="contain"
-                        />
-                    ),
-                }}
-            />
         </Tabs>
     );
 }

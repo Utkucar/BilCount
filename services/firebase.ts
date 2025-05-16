@@ -1,14 +1,14 @@
 // services/firebase.ts
 import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { initializeFirestore } from 'firebase/firestore';
 import {
-    getAuth,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signOut,
     User,
 } from 'firebase/auth';
 import {
-    getFirestore,
     collection,
     getDocs,
     query as firestoreQuery,
@@ -17,10 +17,9 @@ import {
     where,
     doc,
     getDoc,
-    DocumentData,
 } from 'firebase/firestore';
 
-// Initialize Firebase using your .env variables
+// Initialize Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDzcASVCY1bl0PTqpuCVqjhjaMwyAHOLHw",
     authDomain: "bilcount-bf448.firebaseapp.com",
@@ -29,20 +28,21 @@ const firebaseConfig = {
     storageBucket: "bilcount-bf448.firebasestorage.app",
     messagingSenderId: "515265497784",
     appId: "1:515265497784:web:1c76f89bd06fae9a1d024d",
-    measurementId: "G-J8HLVTPLME"
 };
 
 const app = initializeApp(firebaseConfig);
+
+// Authentication (in-memory persistence)
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Firestore with long-polling for React Native listeners
+export const db = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+});
 
 // -----------------------------
-// Authentication
+// Authentication API
 // -----------------------------
-
-/**
- * Sign up a user with email/password, only if email uses the allowedDomain
- */
 export async function signUp(
     email: string,
     password: string,
@@ -55,9 +55,6 @@ export async function signUp(
     return userCred.user;
 }
 
-/**
- * Log in an existing user
- */
 export async function login(
     email: string,
     password: string
@@ -66,16 +63,10 @@ export async function login(
     return userCred.user;
 }
 
-/**
- * Log out the current user
- */
 export async function logout(): Promise<void> {
     await signOut(auth);
 }
 
-/**
- * Get the currently signed-in user, or null
- */
 export function getCurrentUser(): User | null {
     return auth.currentUser;
 }
@@ -83,36 +74,42 @@ export function getCurrentUser(): User | null {
 // -----------------------------
 // Firestore Data Access
 // -----------------------------
+export interface Location {
+    id: string;
+    locationID?: string;
+    name: string;
+    description?: string;
+    image?: string;
+    capacity?: number;
+    coordinates?: { latitude: number; longitude: number };
+    floorCount?: number;
+    createdAt?: string;
+    [key: string]: any;
+}
 
-/**
- * Fetch the latest properties ordered by creation date (ascending)
- */
-export async function getLatestProperties(
+export async function getLatestLocations(
     limitCount: number = 5
-): Promise<DocumentData[]> {
+): Promise<Location[]> {
     const q = firestoreQuery(
-        collection(db, 'properties'),
+        collection(db, 'locations'),
         orderBy('createdAt', 'asc'),
         firestoreLimit(limitCount)
     );
     const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return snap.docs.map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() as any) }));
 }
 
-export interface GetPropertiesParams {
+export interface GetLocationsParams {
     filter?: string;
     query?: string;
     limit?: number;
 }
 
-/**
- * Fetch properties with optional filtering and client-side search
- */
-export async function getProperties({
-                                        filter,
-                                        query: searchQuery,
-                                        limit: limitCount,
-                                    }: GetPropertiesParams): Promise<DocumentData[]> {
+export async function getLocations({
+                                       filter,
+                                       query: _search,
+                                       limit: limitCount,
+                                   }: GetLocationsParams): Promise<Location[]> {
     const constraints: any[] = [];
     if (filter && filter !== 'All') {
         constraints.push(where('type', '==', filter));
@@ -122,29 +119,15 @@ export async function getProperties({
         constraints.push(firestoreLimit(limitCount));
     }
 
-    const q = firestoreQuery(collection(db, 'properties'), ...constraints);
+    const q = firestoreQuery(collection(db, 'locations'), ...constraints);
     const snap = await getDocs(q);
-    let results = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    if (searchQuery) {
-        const lower = searchQuery.toLowerCase();
-        results = results.filter(item =>
-            (item.name as string).toLowerCase().includes(lower) ||
-            (item.address as string).toLowerCase().includes(lower) ||
-            (item.type as string).toLowerCase().includes(lower)
-        );
-    }
-
-    return results;
+    return snap.docs.map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() as any) }));
 }
 
-/**
- * Fetch a single property by its document ID
- */
-export async function getPropertyById(
+export async function getLocationById(
     id: string
-): Promise<DocumentData | null> {
-    const docRef = doc(db, 'properties', id);
+): Promise<Location | null> {
+    const docRef = doc(db, 'locations', id);
     const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+    return docSnap.exists() ? ({ id: docSnap.id, ...(docSnap.data() as any) } as Location) : null;
 }
