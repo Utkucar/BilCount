@@ -22,12 +22,14 @@ import {
 
 // Initialize Firebase using your .env variables
 const firebaseConfig = {
-    apiKey: process.env.FIREBASE_API_KEY!,
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN!,
-    projectId: process.env.FIREBASE_PROJECT_ID!,
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET!,
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID!,
-    appId: process.env.FIREBASE_APP_ID!,
+    apiKey: "AIzaSyDzcASVCY1bl0PTqpuCVqjhjaMwyAHOLHw",
+    authDomain: "bilcount-bf448.firebaseapp.com",
+    databaseURL: "https://bilcount-bf448-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "bilcount-bf448",
+    storageBucket: "bilcount-bf448.firebasestorage.app",
+    messagingSenderId: "515265497784",
+    appId: "1:515265497784:web:1c76f89bd06fae9a1d024d",
+    measurementId: "G-J8HLVTPLME"
 };
 
 const app = initializeApp(firebaseConfig);
