@@ -1,14 +1,12 @@
-// app/explore.tsx
 import React from 'react';
-import {View, Image, ActivityIndicator, TouchableOpacity, Text} from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { View, Image, ActivityIndicator, Text } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFirebase } from '@/lib/useFirebase';
 import { getLocations, Location as FirestoreLocation } from '@/services/firebase';
 import images from '@/constants/images';
 import { router } from 'expo-router';
 
-// Define the shape we’ll actually render on the map
 interface MapPin {
     id: string;
     name: string;
@@ -16,64 +14,56 @@ interface MapPin {
 }
 
 export default function Explore() {
-    // Fetch up to 100 locations (no filtering/search on this screen)
-    const {
-        data: rawLocations,
-        loading,
-        error,
-        refetch,
-    } = useFirebase<FirestoreLocation[], { filter: string; query: string; limit: number }>({
-        fn:     getLocations,
-        params: { filter: 'All', query: '', limit: 100 },
-        skip:   false,
-    });
+    const { data: rawLocations, loading, error, refetch } =
+        useFirebase<FirestoreLocation[], { filter: string; query: string; limit: number }>({
+            fn:     getLocations,
+            params: { filter: 'All', query: '', limit: 100 },
+            skip:   false,
+        });
 
-    // Transform FirestoreLocation → MapPin
     const locations: MapPin[] = React.useMemo(() => {
         if (!rawLocations) return [];
-        return rawLocations.map((loc) => ({
-            id:   loc.id,
-            name: loc.name,
-            coordinates: {
-                lat: loc.coordinates?.latitude  ?? 0,
-                lng: loc.coordinates?.longitude ?? 0,
-            },
-        }));
+
+        return rawLocations.map((loc) => {
+            const lat = loc.coordinates?.lat ?? 0;
+            const lng = loc.coordinates?.lng ?? 0;
+
+            return {
+                id:   loc.id,
+                name: loc.name,
+                coordinates: { lat, lng },
+            };
+        });
     }, [rawLocations]);
+
+    // **Debug**: log your pins to make sure they're valid
+    console.log('🔍 Map pins:', locations);
 
     if (loading) {
         return (
-            <SafeAreaView className="flex-1 justify-center items-center bg-white">
+            <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" />
             </SafeAreaView>
         );
     }
-
     if (error) {
         return (
-            <SafeAreaView className="flex-1 justify-center items-center bg-white">
+            <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <Text>Error loading locations.</Text>
-                <TouchableOpacity onPress={() => refetch()}>
-                    <Text>Try Again</Text>
-                </TouchableOpacity>
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
-            {/* Header Logo */}
-            <View className="items-center justify-center bg-white pt-4">
-                <Image
-                    source={images.bilcount}
-                    className="w-40 h-12"
-                    resizeMode="contain"
-                />
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+            {/* Logo */}
+            <View style={{ alignItems: 'center', paddingTop: 16 }}>
+                <Image source={images.bilcount} style={{ width: 160, height: 48 }} resizeMode="contain" />
             </View>
 
-            {/* Map with markers */}
             <MapView
-                style={{ flex: 1 }}
+                provider={PROVIDER_GOOGLE}
+                style={{ flex: 1, width: '100%' }}
                 initialRegion={{
                     latitude: 39.8698,
                     longitude: 32.7503,
@@ -83,17 +73,19 @@ export default function Explore() {
                 showsUserLocation
                 showsMyLocationButton
             >
-                {locations.map((pin) => (
-                    <Marker
-                        key={pin.id}
-                        coordinate={{
-                            latitude: pin.coordinates.lat,
-                            longitude: pin.coordinates.lng,
-                        }}
-                        title={pin.name}
-                        onPress={() => router.push(`/locations/${pin.id}`)}
-                    />
-                ))}
+                {locations.map((pin) =>
+                    pin.coordinates.lat !== 0 && pin.coordinates.lng !== 0 ? (
+                        <Marker
+                            key={pin.id}
+                            coordinate={{
+                                latitude: pin.coordinates.lat,
+                                longitude: pin.coordinates.lng,
+                            }}
+                            title={pin.name}
+                            onPress={() => router.push(`/locations/${pin.id}`)}
+                        />
+                    ) : null
+                )}
             </MapView>
         </SafeAreaView>
     );

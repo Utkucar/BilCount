@@ -85,7 +85,8 @@ export interface Location {
     description?: string;
     image?: string;
     capacity?: number;
-    coordinates?: { latitude: number; longitude: number };
+    coordinates?: {
+        lat: number; lng: number };
     floorCount?: number;
     createdAt?: string;
     [key: string]: any;
