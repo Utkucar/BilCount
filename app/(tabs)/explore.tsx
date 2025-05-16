@@ -4,36 +4,34 @@ import { View, Image, ActivityIndicator } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFirebase } from '@/lib/useFirebase';
-import { getProperties } from '@/services/firebase';
+import { getLocations } from '@/services/firebase';
 import images from '@/constants/images';
 import { router } from 'expo-router';
 
 // Define type for a location
-interface Location {
+export interface Location {
     id: string;
     name: string;
-    coordinates: {
-        lat: number;
-        lng: number;
-    };
+    coordinates?: { latitude: number; longitude: number };
 }
+
 
 export default function Explore() {
     // Fetch up to 100 properties one-off
     const {
         data: docs,
         loading,
-    } = useFirebase(getProperties, { filter: 'All', query: '', limit: 100 });
+    } = useFirebase(getLocations, { filter: 'All', query: '', limit: 100 });
 
-    const locations: Location[] = React.useMemo(
+    const locations: { id: string; name: string; coordinates: { lat: any; lng: any } }[] = React.useMemo(
         () =>
             docs
                 ? docs.map((d) => ({
                     id: d.id,
                     name: d.name,
                     coordinates: {
-                        lat: Number(d.latitude),
-                        lng: Number(d.longitude),
+                        lat: d.latitude?.latitude ?? 0,
+                        lng: d.longitude?.longitude ?? 0,
                     },
                 }))
                 : [],

@@ -13,19 +13,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import icons from '@/constants/icons';
 import Search from '@/components/Search';
 import { FeaturedCard, Card } from '@/components/Cards';
-import { Filter } from '@/components/Filters';
 import { useGlobalContext } from '@/lib/global-provider';
 import { useFirebase } from '@/lib/useFirebase';
 import {
-  getLatestProperties,
-  getProperties,
+  getLatestLocations,
+  getLocations,
 } from '@/services/firebase';
 
-interface Location {
+interface LocationItem {
   id: string;
   name: string;
-  latitude: number;
-  longitude: number;
+  [key: string]: any;
 }
 
 export default function Index() {
@@ -34,31 +32,36 @@ export default function Index() {
   const filter = params.filter || 'All';
   const query = params.query || '';
 
-  // One-off async loads
+  // Latest 5 locations
   const {
     data: latest,
     loading: latestLoading,
     refetch: refreshLatest,
-  } = useFirebase(getLatestProperties, { limit: 5 });
+  } = useFirebase(getLatestLocations, 5);
 
+  // Filtered / searched list, up to 6 items
   const {
-    data: properties,
-    loading: propsLoading,
-    refetch: refreshProps,
-  } = useFirebase(getProperties, { filter, query, limit: 6 });
+    data: locations,
+    loading: listLoading,
+    refetch: refreshList,
+  } = useFirebase(getLocations, { filter, query, limit: 6 });
 
-  // Build favorites from user.favLocations
+  // Favorites subset
   const favorites = React.useMemo(() => {
-    if (!user?.favLocations || !properties) return [];
-    return properties.filter((p) => user.favLocations.includes(p.id));
-  }, [user, properties]);
+    if (!user?.favLocations || !locations) return [];
+    return locations.filter((loc: LocationItem) =>
+        user.favLocations.includes(loc.id)
+    );
+  }, [user, locations]);
 
-  const handleCardPress = (id: string) => router.push(`/locations/${id}`);
+  const handleCardPress = (id: string) => {
+    router.push(`/locations/${id}`);
+  };
 
   return (
       <SafeAreaView className="bg-white h-full">
         <FlatList
-            data={properties || []}
+            data={locations ?? []}
             renderItem={({ item }) => (
                 <Card item={item} onPress={() => handleCardPress(item.id)} />
             )}
@@ -68,7 +71,7 @@ export default function Index() {
             columnWrapperClassName="flex gap-5 px-5"
             showsHorizontalScrollIndicator={false}
             ListEmptyComponent={
-              propsLoading ? (
+              listLoading ? (
                   <ActivityIndicator
                       size="large"
                       className="text-primary-300 mt-5"
@@ -111,7 +114,7 @@ export default function Index() {
                     <Text className="text-xl font-rubik-extrabold text-black-300">
                       Favourites
                     </Text>
-                    <TouchableOpacity onPress={() => refreshProps()}>
+                    <TouchableOpacity onPress={refreshList}>
                       <Text className="text-base font-rubik-bold text-primary-300">
                         See All
                       </Text>
@@ -143,7 +146,7 @@ export default function Index() {
                   <Text className="text-xl font-rubik-extrabold text-black-300">
                     Our Recommendations
                   </Text>
-                  <TouchableOpacity onPress={() => refreshLatest()}>
+                  <TouchableOpacity onPress={refreshLatest}>
                     <Text className="text-base font-rubik-bold text-primary-300">
                       See All
                     </Text>
