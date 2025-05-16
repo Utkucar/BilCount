@@ -35,23 +35,30 @@ export default function Index() {
   // Latest 5 locations
   const {
     data: latest,
-    loading: latestLoading,
-    refetch: refreshLatest,
-  } = useFirebase(getLatestLocations, 5);
+      loading: latestLoading,
+      refetch: refreshLatest,
+    } = useFirebase<LocationItem[], { limit: number }>({
+      // wrap the numeric-arg function in an object signature
+         fn:     ({ limit }) => getLatestLocations(limit),
+         params: { limit: 5 },
+     skip:   false,
+    });
 
   // Filtered / searched list, up to 6 items
   const {
     data: locations,
     loading: listLoading,
     refetch: refreshList,
-  } = useFirebase(getLocations, { filter, query, limit: 6 });
+  } = useFirebase<LocationItem[], { filter: string; query: string; limit: number }>({
+    fn:     getLocations,
+    params: { filter, query, limit: 6 },
+    skip:   false,
+  });
 
   // Favorites subset
   const favorites = React.useMemo(() => {
     if (!user?.favLocations || !locations) return [];
-    return locations.filter((loc: LocationItem) =>
-        user.favLocations.includes(loc.id)
-    );
+    return locations.filter((loc) => user.favLocations.includes(loc.id));
   }, [user, locations]);
 
   const handleCardPress = (id: string) => {
@@ -114,7 +121,7 @@ export default function Index() {
                     <Text className="text-xl font-rubik-extrabold text-black-300">
                       Favourites
                     </Text>
-                    <TouchableOpacity onPress={refreshList}>
+                    <TouchableOpacity onPress={() => refreshList()}>
                       <Text className="text-base font-rubik-bold text-primary-300">
                         See All
                       </Text>
@@ -146,7 +153,7 @@ export default function Index() {
                   <Text className="text-xl font-rubik-extrabold text-black-300">
                     Our Recommendations
                   </Text>
-                  <TouchableOpacity onPress={refreshLatest}>
+                  <TouchableOpacity onPress={() => refreshLatest()}>
                     <Text className="text-base font-rubik-bold text-primary-300">
                       See All
                     </Text>

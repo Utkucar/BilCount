@@ -1,55 +1,66 @@
 // lib/useFirebase.ts
 
-import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { useEffect, useState } from "react";
+import { Alert } from "react-native";
 
-/**
- * One-off async fetch
- * @param fn - async function accepting params of type P
- * @param params - parameters passed to fn (can be any type)
- * @param skip - if true, initial fetch is skipped
- */
-export function useFirebase<T, P>(
-    fn: (params: P) => Promise<T>,
-    params: P,
-    skip = false
-) {
+// --- One-off async fetch hook --------------------------------------------
+interface UseFirebaseOptions<T, P extends Record<string, any>> {
+    fn: (params: P) => Promise<T>;
+    params?: P;
+    skip?: boolean;
+}
+
+interface UseFirebaseReturn<T, P> {
+    data: T | null;
+    loading: boolean;
+    error: string | null;
+    refetch: (newParams?: P) => Promise<void>;
+}
+
+export function useFirebase<T, P extends Record<string, any>>({
+                                                                  fn,
+                                                                  params = {} as P,
+                                                                  skip = false,
+                                                              }: UseFirebaseOptions<T, P>): UseFirebaseReturn<T, P> {
     const [data, setData] = useState<T | null>(null);
     const [loading, setLoading] = useState(!skip);
     const [error, setError] = useState<string | null>(null);
+    const [lastParams, setLastParams] = useState<P>(params);
 
-    const fetchData = async (p: P) => {
+    const fetchData = async (fetchParams: P) => {
         setLoading(true);
         setError(null);
         try {
-            const result = await fn(p);
+            const result = await fn(fetchParams);
             setData(result);
-        } catch (e: any) {
-            const msg = e instanceof Error ? e.message : 'Unknown error';
-            setError(msg);
-            Alert.alert('Error', msg);
+        } catch (err: unknown) {
+            const errorMessage =
+                err instanceof Error ? err.message : "An unknown error occurred";
+            setError(errorMessage);
+            Alert.alert("Error", errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
+    // initial fetch on mount
     useEffect(() => {
         if (!skip) {
-            fetchData(params);
+            fetchData(lastParams);
         }
-        // only run on mount or when fn reference changes
-    }, [fn]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    const refetch = (newParams?: P) => fetchData(newParams ?? params);
+    const refetch = async (newParams?: P) => {
+        const toUse = newParams ?? lastParams;
+        setLastParams(toUse);
+        await fetchData(toUse);
+    };
 
     return { data, loading, error, refetch };
 }
 
-/**
- * Real-time subscription hook
- * @param subscribeFn - function that accepts next and onError callbacks and returns an unsubscribe function
- * @param deps - dependency array for restarting the subscription
- */
+// --- Real-time subscription hook -----------------------------------------
 export function useSubscription<T>(
     subscribeFn: (
         next: (data: T) => void,
@@ -64,8 +75,8 @@ export function useSubscription<T>(
     useEffect(() => {
         setLoading(true);
         const unsubscribe = subscribeFn(
-            d => { setData(d); setLoading(false); },
-            e => { console.error(e); setError(e); setLoading(false); }
+            (d) => { setData(d); setLoading(false); },
+            (e) => { console.error(e); setError(e); setLoading(false); }
         );
         return () => unsubscribe();
     }, deps);

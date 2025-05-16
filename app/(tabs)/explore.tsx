@@ -1,47 +1,61 @@
 // app/explore.tsx
 import React from 'react';
-import { View, Image, ActivityIndicator } from 'react-native';
+import {View, Image, ActivityIndicator, TouchableOpacity, Text} from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFirebase } from '@/lib/useFirebase';
-import { getLocations } from '@/services/firebase';
+import { getLocations, Location as FirestoreLocation } from '@/services/firebase';
 import images from '@/constants/images';
 import { router } from 'expo-router';
 
-// Define type for a location
-export interface Location {
+// Define the shape we’ll actually render on the map
+interface MapPin {
     id: string;
     name: string;
-    coordinates?: { latitude: number; longitude: number };
+    coordinates: { lat: number; lng: number };
 }
 
-
 export default function Explore() {
-    // Fetch up to 100 properties one-off
+    // Fetch up to 100 locations (no filtering/search on this screen)
     const {
-        data: docs,
+        data: rawLocations,
         loading,
-    } = useFirebase(getLocations, { filter: 'All', query: '', limit: 100 });
+        error,
+        refetch,
+    } = useFirebase<FirestoreLocation[], { filter: string; query: string; limit: number }>({
+        fn:     getLocations,
+        params: { filter: 'All', query: '', limit: 100 },
+        skip:   false,
+    });
 
-    const locations: { id: string; name: string; coordinates: { lat: any; lng: any } }[] = React.useMemo(
-        () =>
-            docs
-                ? docs.map((d) => ({
-                    id: d.id,
-                    name: d.name,
-                    coordinates: {
-                        lat: d.latitude?.latitude ?? 0,
-                        lng: d.longitude?.longitude ?? 0,
-                    },
-                }))
-                : [],
-        [docs]
-    );
+    // Transform FirestoreLocation → MapPin
+    const locations: MapPin[] = React.useMemo(() => {
+        if (!rawLocations) return [];
+        return rawLocations.map((loc) => ({
+            id:   loc.id,
+            name: loc.name,
+            coordinates: {
+                lat: loc.coordinates?.latitude  ?? 0,
+                lng: loc.coordinates?.longitude ?? 0,
+            },
+        }));
+    }, [rawLocations]);
 
     if (loading) {
         return (
             <SafeAreaView className="flex-1 justify-center items-center bg-white">
                 <ActivityIndicator size="large" />
+            </SafeAreaView>
+        );
+    }
+
+    if (error) {
+        return (
+            <SafeAreaView className="flex-1 justify-center items-center bg-white">
+                <Text>Error loading locations.</Text>
+                <TouchableOpacity onPress={() => refetch()}>
+                    <Text>Try Again</Text>
+                </TouchableOpacity>
             </SafeAreaView>
         );
     }
@@ -69,15 +83,15 @@ export default function Explore() {
                 showsUserLocation
                 showsMyLocationButton
             >
-                {locations.map((loc) => (
+                {locations.map((pin) => (
                     <Marker
-                        key={loc.id}
+                        key={pin.id}
                         coordinate={{
-                            latitude: loc.coordinates.lat,
-                            longitude: loc.coordinates.lng,
+                            latitude: pin.coordinates.lat,
+                            longitude: pin.coordinates.lng,
                         }}
-                        title={loc.name}
-                        onPress={() => router.push(`/locations/${loc.id}`)}
+                        title={pin.name}
+                        onPress={() => router.push(`/locations/${pin.id}`)}
                     />
                 ))}
             </MapView>

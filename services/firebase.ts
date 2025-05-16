@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
+import { getDatabase } from 'firebase/database';
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -39,6 +40,9 @@ export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
     experimentalForceLongPolling: true,
 });
+
+// Realtime Database
+export const realtimeDB = getDatabase(app);
 
 // -----------------------------
 // Authentication API
@@ -129,5 +133,7 @@ export async function getLocationById(
 ): Promise<Location | null> {
     const docRef = doc(db, 'locations', id);
     const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? ({ id: docSnap.id, ...(docSnap.data() as any) } as Location) : null;
+    return docSnap.exists()
+        ? ({ id: docSnap.id, ...(docSnap.data() as any) } as Location)
+        : null;
 }

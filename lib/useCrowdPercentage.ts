@@ -1,40 +1,45 @@
+// lib/useCrowdPercentage.ts
+
 import { useEffect, useState } from "react";
 import { realtimeDB } from "@/services/firebase";
 import { ref, onValue } from "firebase/database";
 
-export function useCrowdPercentage(id: string | undefined, capacity: number | undefined) {
+export function useCrowdPercentage(
+    id?: string,
+    capacity?: number
+) {
     const [crowdPercentage, setCrowdPercentage] = useState<number | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (!id || capacity === undefined) {
+        // if we don't have the bits to even subscribe, bail out immediately
+        if (!id || capacity == null) {
             setCrowdPercentage(null);
-            setLoading(true);
+            setLoading(false);
             return;
         }
 
-        const logRef = ref(realtimeDB, `logs/${id}`);
-        console.log("👀 Subscribing to RealtimeDB path:", `logs/${id}`);
+        setLoading(true);
+        const path = `logs/${id}`;
+        console.log("👀 Subscribing to RealtimeDB path:", path);
+        const logRef = ref(realtimeDB, path);
 
         const unsubscribe = onValue(
             logRef,
             (snapshot) => {
-                console.log("📥 onValue triggered");
                 const data = snapshot.val();
-                console.log("📥 Snapshot val:", data);
-
                 if (!data) {
                     setCrowdPercentage(null);
                     setLoading(false);
                     return;
                 }
 
-                const logsArray = Object.values(data) as {
+                const logsArray = Object.values(data) as Array<{
                     count: number;
                     timestamp: number;
-                    deviceId?: string;   // ✅ support lowercase
-                    deviceID?: string;   // legacy support if needed
-                }[];
+                    deviceId?: string;
+                    deviceID?: string;
+                }>;
 
                 if (logsArray.length === 0) {
                     setCrowdPercentage(null);
@@ -42,19 +47,15 @@ export function useCrowdPercentage(id: string | undefined, capacity: number | un
                     return;
                 }
 
-                // Sort logs descending by timestamp
-                logsArray.sort((a, b) => b.timestamp - a.timestamp);
-                const latestLog = logsArray[0];
-
-                if (latestLog && typeof latestLog.count === "number") {
-                    const fullness = Math.min((latestLog.count / capacity) * 100, 100);
-                    console.log(`✅ Latest log: count=${latestLog.count}, timestamp=${latestLog.timestamp}`);
-                    setCrowdPercentage(Math.round(fullness));
+                // sort descending
+                const latest = logsArray.sort((a, b) => b.timestamp - a.timestamp)[0];
+                if (typeof latest.count === "number") {
+                    const percent = Math.min((latest.count / capacity) * 100, 100);
+                    setCrowdPercentage(Math.round(percent));
                 } else {
-                    console.warn("⚠️ Invalid latest log entry:", latestLog);
+                    console.warn("⚠️ Invalid log entry", latest);
                     setCrowdPercentage(null);
                 }
-
                 setLoading(false);
             },
             (error) => {
@@ -64,7 +65,7 @@ export function useCrowdPercentage(id: string | undefined, capacity: number | un
         );
 
         return () => {
-            console.log("🔌 Unsubscribing from RealtimeDB path:", `logs/${id}`);
+            console.log("🔌 Unsubscribing from:", path);
             unsubscribe();
         };
     }, [id, capacity]);
