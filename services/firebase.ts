@@ -18,6 +18,7 @@ import {
     where,
     doc,
     getDoc,
+    updateDoc, arrayUnion, arrayRemove
 } from 'firebase/firestore';
 
 // Initialize Firebase
@@ -137,4 +138,17 @@ export async function getLocationById(
     return docSnap.exists()
         ? ({ id: docSnap.id, ...(docSnap.data() as any) } as Location)
         : null;
+}
+
+export async function toggleFavoriteLocation(
+    userId: string,
+    locationId: string,
+    add: boolean
+): Promise<void> {
+    const userRef = doc(db, 'users', userId);
+    if (add) {
+        await updateDoc(userRef, { favLocations: arrayUnion(locationId) });
+    } else {
+        await updateDoc(userRef, { favLocations: arrayRemove(locationId) });
+    }
 }

@@ -1,8 +1,14 @@
 // context/GlobalProvider.tsx
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { auth, db, signUp, login as firebaseLogin, logout as firebaseLogout } from '@/services/firebase';
+import {
+    auth,
+    db,
+    signUp,
+    login as firebaseLogin,
+    logout as firebaseLogout,
+} from '@/services/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 interface UserProfile {
     id: string;
@@ -21,23 +27,23 @@ interface GlobalContextType {
     signUp: (email: string, password: string) => Promise<FirebaseUser>;
     login: (email: string, password: string) => Promise<FirebaseUser>;
     logout: () => Promise<void>;
+    toggleFavorite: (locationId: string) => Promise<void>;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
-// Helper to format Firebase user into our UserProfile
 async function formatUser(firebaseUser: FirebaseUser): Promise<UserProfile> {
     const base: UserProfile = {
         id: firebaseUser.uid,
         name: firebaseUser.email?.split('@')[0] ?? 'User',
         email: firebaseUser.email!,
         avatar: `https://ui-avatars.com/api/?name=${firebaseUser.email?.split('@')[0]}`,
-        favLocations: []
+        favLocations: [],
     };
 
     try {
-        const ref = doc(db, 'users', firebaseUser.uid);
-        const snap = await getDoc(ref);
+        const refUser = doc(db, 'users', firebaseUser.uid);
+        const snap = await getDoc(refUser);
         if (snap.exists()) {
             const data = snap.data() as Partial<UserProfile>;
             return { ...base, ...data };
@@ -53,7 +59,6 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Subscribe to auth state on mount
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, async (fbUser) => {
             if (fbUser && fbUser.email) {
@@ -67,7 +72,6 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         return () => unsub();
     }, []);
 
-    // Expose refetch for manual reload
     const refetch = async () => {
         const fbUser = auth.currentUser;
         if (fbUser && fbUser.email) {
@@ -78,14 +82,35 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    // Wrap Firebase auth methods
     const handleSignUp = (email: string, password: string) => {
-        // allowedDomain could come from env or hardcoded
         const allowedDomain = 'example.com';
         return signUp(email, password, allowedDomain);
     };
     const handleLogin = (email: string, password: string) => firebaseLogin(email, password);
     const handleLogout = () => firebaseLogout();
+
+    const toggleFavorite = async (locationId: string) => {
+        if (!user) return;
+        const userRef = doc(db, 'users', user.id);
+        const isFav = user.favLocations.includes(locationId);
+        try {
+            if (isFav) {
+                await updateDoc(userRef, { favLocations: arrayRemove(locationId) });
+                setUser({
+                    ...user,
+                    favLocations: user.favLocations.filter((id) => id !== locationId),
+                });
+            } else {
+                await updateDoc(userRef, { favLocations: arrayUnion(locationId) });
+                setUser({
+                    ...user,
+                    favLocations: [...user.favLocations, locationId],
+                });
+            }
+        } catch (err) {
+            console.warn('Failed to toggle favorite', err);
+        }
+    };
 
     return (
         <GlobalContext.Provider
@@ -96,7 +121,8 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
                 refetch,
                 signUp: handleSignUp,
                 login: handleLogin,
-                logout: handleLogout
+                logout: handleLogout,
+                toggleFavorite,
             }}
         >
             {children}
