@@ -1,8 +1,9 @@
 import icons from "@/constants/icons";
 import images from "@/constants/images";
+import {locationImages} from "@/constants/locationImages";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { Location as FirestoreLocation } from "@/services/firebase";
-import { useGlobalContext } from '@/lib/global-provider';
+import { useGlobalContext } from "@/lib/global-provider";
 
 // Extend FirestoreLocation with UI-specific fields
 interface CardItem extends FirestoreLocation {
@@ -19,6 +20,7 @@ interface Props {
 export const FeaturedCard = ({ item, onPress }: Props) => {
   const { user, toggleFavorite } = useGlobalContext();
   const isFav = user?.favLocations.includes(item.id) ?? false;
+  const imageSource = locationImages[item.id] ?? { uri: item.image };
 
   return (
       <TouchableOpacity
@@ -26,7 +28,7 @@ export const FeaturedCard = ({ item, onPress }: Props) => {
           className="flex flex-col items-start w-60 h-80 relative"
       >
         {/* Background Image */}
-        <Image source={{ uri: item.image }} className="size-full rounded-2xl" />
+        <Image source={imageSource} className="size-full rounded-2xl" />
 
         {/* Gradient Overlay */}
         <Image
@@ -85,6 +87,7 @@ export const FeaturedCard = ({ item, onPress }: Props) => {
 export const Card = ({ item, onPress }: Props) => {
   const { user, toggleFavorite } = useGlobalContext();
   const isFav = user?.favLocations.includes(item.id) ?? false;
+  const imageSource = locationImages[item.id] ?? { uri: item.image };
 
   return (
       <TouchableOpacity
@@ -115,7 +118,7 @@ export const Card = ({ item, onPress }: Props) => {
         )}
 
         {/* Main Image */}
-        <Image source={{ uri: item.image }} className="w-full h-40 rounded-lg" />
+        <Image source={imageSource} className="w-full h-40 rounded-lg" />
 
         {/* Text Content */}
         <View className="flex flex-col mt-2">
