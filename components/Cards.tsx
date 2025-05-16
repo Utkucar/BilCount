@@ -37,7 +37,8 @@ export const FeaturedCard = ({ item, onPress }: Props) => {
         {/* Favorite Toggle */}
         <TouchableOpacity
             onPress={() => toggleFavorite(item.id)}
-            className="absolute top-5 right-5 p-2 z-50"
+            className="absolute top-3 right-3 p-1 bg-white rounded-full z-50"
+            style={{ elevation: 5 }}
         >
           <Image
               source={isFav ? icons.heartFilled : icons.heart}
@@ -47,7 +48,7 @@ export const FeaturedCard = ({ item, onPress }: Props) => {
 
         {/* Rating Badge */}
         {item.rating != null && (
-            <View className="flex flex-row items-center bg-white/90 px-3 py-1.5 rounded-full absolute top-5 left-5">
+            <View className="flex flex-row items-center bg-white/90 px-3 py-1.5 rounded-full absolute top-5 left-5 z-40">
               <Image source={icons.star} className="size-3.5" />
               <Text className="text-xs font-rubik-bold text-primary-300 ml-1">
                 {item.rating}
@@ -56,7 +57,7 @@ export const FeaturedCard = ({ item, onPress }: Props) => {
         )}
 
         {/* Content */}
-        <View className="flex flex-col items-start absolute bottom-5 inset-x-5">
+        <View className="flex flex-col items-start absolute bottom-5 inset-x-5 z-40">
           <Text
               className="text-xl font-rubik-extrabold text-white"
               numberOfLines={1}
@@ -93,7 +94,8 @@ export const Card = ({ item, onPress }: Props) => {
         {/* Favorite Toggle */}
         <TouchableOpacity
             onPress={() => toggleFavorite(item.id)}
-            className="absolute top-5 right-5 p-2 z-50"
+            className="absolute top-3 right-3 p-1 bg-white rounded-full z-50"
+            style={{ elevation: 5 }}
         >
           <Image
               source={isFav ? icons.heartFilled : icons.heart}
@@ -104,7 +106,7 @@ export const Card = ({ item, onPress }: Props) => {
 
         {/* Rating Badge */}
         {item.rating != null && (
-            <View className="flex flex-row items-center absolute px-2 top-5 left-5 bg-white/90 p-1 rounded-full z-50">
+            <View className="flex flex-row items-center absolute px-2 top-5 left-5 bg-white/90 p-1 rounded-full z-40">
               <Image source={icons.star} className="size-2.5" />
               <Text className="text-xs font-rubik-bold text-primary-300 ml-0.5">
                 {item.rating}
@@ -125,14 +127,6 @@ export const Card = ({ item, onPress }: Props) => {
                 {item.address}
               </Text>
           )}
-
-          <View className="flex flex-row items-center justify-between mt-2">
-            {item.price != null && (
-                <Text className="text-base font-rubik-bold text-primary-300">
-                  ${item.price}
-                </Text>
-            )}
-          </View>
         </View>
       </TouchableOpacity>
   );
