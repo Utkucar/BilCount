@@ -20,14 +20,6 @@
 
 3. 🔋 [Features](#features)
 
-4. 🤸 [Quick Start](#quick-start)
-
-5. 🕸️ [Snippets (Code to Copy)](#snippets)
-
-6. 🔗 [Assets](#links)
-
-7. 🚀 [More](#more)
-
 ## <a name="introduction">🤖 Introduction</a>
 
 Built with Expo, TypeScript, and Tailwind CSS, this app fetches live data from our sensors and creates an application for occupancy information regarding the hotspots around the campus. It provides users with a seamless browsing experience, users can see which areas are more crowded, the air quality around the spot and events happening there. The app leverages modern UI/UX principles for a responsive and visually appealing interface, ensuring real-world scalability and performance.
